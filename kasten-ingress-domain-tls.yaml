@@ -1,0 +1,36 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: kasten-gateway
+  namespace: kasten-io
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: kasten-tls  # Name of the secret containing TLS certificate and key
+    hosts:
+    - "kasten.mcourcy-gke.kastenevents.com"
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: kasten-virtualservice
+  namespace: kasten-io
+spec:
+  hosts:
+  - "kasten.mcourcy-gke.kastenevents.com"
+  gateways:
+  - kasten-gateway
+  http:
+  - route:
+    - destination:
+        host: gateway
+        port:
+          number: 80

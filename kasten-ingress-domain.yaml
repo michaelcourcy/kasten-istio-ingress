@@ -1,0 +1,33 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: kasten-gateway
+  namespace: kasten-io  # This ensures the resource is created in the kasten-io namespace
+spec:
+  selector:
+    istio: ingressgateway  # Use Istio's default ingress gateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "kasten.mcourcy-gke.kastenevents.com"  # Accept traffic for all hosts, or restrict as needed
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: kasten-virtualservice
+  namespace: kasten-io  # This ensures the resource is created in the kasten-io namespace
+spec:
+  hosts:
+  - "kasten.mcourcy-gke.kastenevents.com" # Must match the hosts in the Gateway
+  gateways:
+  - kasten-gateway
+  http:
+  - route:
+    - destination:
+        host: gateway  # gateway is the service name in kasten-io namespace
+        port:
+          number: 80   # This should match the port exposed by the service gateway is on 80 in kasten-io
