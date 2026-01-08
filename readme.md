@@ -4,12 +4,15 @@ Show how to expose kasten with an Istio ingress
 
 # Install ISTIO
 
-This guide was executed on GKE 
+This guide was executed on EKS 1.32.9 and istio 1.28.2
 ```
-kubectl version  
-Client Version: v1.30.3
-Kustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3
-Server Version: v1.31.6-gke.1064001
+Client Version: v1.34.2
+Kustomize Version: v5.7.1
+Server Version: v1.32.9-eks-3025e55
+Warning: version difference between client (1.34) and server (1.32) exceeds the supported minor version skew of +/-1
+client version: 1.28.2
+control plane version: 1.28.2
+data plane version: 1.28.2 (2 proxies)
 ```
 
 1. Download and install istioctl if you haven't already
@@ -79,17 +82,18 @@ EOF
 Find out on which IP your ingressgateway is exposed
 ```
 kubectl get svc -n istio-system
-NAME                   TYPE           CLUSTER-IP   EXTERNAL-IP    PORT(S)                                                                      AGE
-istio-egressgateway    ClusterIP      10.2.14.71   <none>         80/TCP,443/TCP                                                               7m18s
-istio-ingressgateway   LoadBalancer   10.2.10.68   34.121.37.12   15021:30850/TCP,80:32692/TCP,443:30245/TCP,31400:30316/TCP,15443:32099/TCP   7m18s
-istiod                 ClusterIP      10.2.5.117   <none>         15010/TCP,15012/TCP,443/TCP,15014/TCP                                        7m28s
+NAME                          TYPE           CLUSTER-IP       EXTERNAL-IP                                                               PORT(S)                                                                      AGE
+istio-egressgateway           ClusterIP      10.100.12.213    <none>                                                                    80/TCP,443/TCP                                                               30m
+istio-ingressgateway          LoadBalancer   10.100.223.167   a2c5b47b085d44bc9a22504f0519e7a6-1692155039.us-east-1.elb.amazonaws.com   15021:30916/TCP,80:30418/TCP,443:32278/TCP,31400:31625/TCP,15443:31767/TCP   30m
+istiod                        ClusterIP      10.100.54.95     <none>                                                                    15010/TCP,15012/TCP,443/TCP,15014/TCP                                        30m
+istiod-revision-tag-default   ClusterIP      10.100.204.30    <none>                                                                    15010/TCP,15012/TCP,443/TCP,15014/TCP                                        30m
 ```
 
-The ingressgateway is exposed on the public IP `34.121.37.12`
+The ingressgateway is exposed on the public IP `a2c5b47b085d44bc9a22504f0519e7a6-1692155039.us-east-1.elb.amazonaws.com`
 
 Use this IP in your browser 
 ```
-http://34.121.37.12/k10/
+http://a2c5b47b085d44bc9a22504f0519e7a6-1692155039.us-east-1.elb.amazonaws.com/k10/
 ```
 
 # use a domain resolution instead 
