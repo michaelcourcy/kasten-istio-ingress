@@ -44,7 +44,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: kasten-gateway
-  namespace: kasten-io  # This ensures the resource is created in the kasten-io namespace
+  namespace: istio-system  # This ensures the resource is created in the kasten-io namespace
 spec:
   selector:
     istio: ingressgateway  # Use Istio's default ingress gateway
@@ -66,7 +66,7 @@ spec:
   hosts:
   - "*" # Must match the hosts in the Gateway
   gateways:
-  - kasten-gateway
+  - istio-system/kasten-gateway
   http:
   - match:
     - uri:
@@ -98,11 +98,11 @@ http://a2c5b47b085d44bc9a22504f0519e7a6-1692155039.us-east-1.elb.amazonaws.com/k
 
 # use a domain resolution instead 
 
-Of course this solution is naive, all the request pointing to `34.121.37.12` are now redirected to the gateway kasten-io services.
+Of course this solution is naive, all the request pointing to `a2c5b47b085d44bc9a22504f0519e7a6-1692155039.us-east-1.elb.amazonaws.com` are now redirected to the gateway kasten-io services.
 
 You want your ingress gateway to handle multiple service. There is plenty way to do it but let's explore a simple solution : **domain resolution**.
 
-I will create a A Record in my DNS provider (In my case it's AWS Route 53) to point to the the IP `34.121.37.12`. For instance for the wilcard domain `*.mcourcy-gke.kastenevents.com`.
+I will create a A Record in my DNS provider (In my case it's AWS Route 53) to point to the the CNAME `a2c5b47b085d44bc9a22504f0519e7a6-1692155039.us-east-1.elb.amazonaws.com`. For instance for the wilcard domain `k10-on-istio.kastenevents.com`.
 
 ![Wildcard A record](./images/create-A-record-wildcard.png)
 
@@ -134,7 +134,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: kasten-gateway
-  namespace: kasten-io  # This ensures the resource is created in the kasten-io namespace
+  namespace: istio-system  # This ensures the resource is created in the kasten-io namespace
 spec:
   selector:
     istio: ingressgateway  # Use Istio's default ingress gateway
@@ -156,7 +156,7 @@ spec:
   hosts:
   - "kasten.mcourcy-gke.kastenevents.com" # Must match the hosts in the Gateway
   gateways:
-  - kasten-gateway
+  - istio-system
   http:
   - route:
     - destination:
