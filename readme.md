@@ -36,6 +36,7 @@ kubectl get pods -n istio-system
 Creating an ingress with Istio involves defining an Istio Gateway and a VirtualService. The Gateway resource maps external traffic to the cluster while the VirtualService directs the traffic to the appropriate service. For example, to expose a service called "kasten-service" on port 80, you could use the following YAML definitions:
 
 ```yaml
+cat <<EOF | kubectl create -f -
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
@@ -64,11 +65,15 @@ spec:
   gateways:
   - kasten-gateway
   http:
-  - route:
+  - match:
+    - uri:
+        prefix: /k10
+    route:
     - destination:
-        host: kasten-service  # Replace with your actual service name
+        host: gateway  # Replace with your actual service name
         port:
           number: 80         # Replace if your service listens on a different port
+EOF
 ```
 
 Find out on which IP your ingressgateway is exposed
