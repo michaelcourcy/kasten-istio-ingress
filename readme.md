@@ -375,3 +375,143 @@ Now you can access the Kasten UI with `https://mcourcy-k10-on-istio.kastenevents
 istioctl uninstall --purge -y
 ```
 
+# Access through tunneling and port-forward in a jump host
+
+When you don't have any ingress solution (Load balancer, istio ingress, nginx ingress, traefik ...) you can use a port forward command.
+
+## Direct port-forward (when you have direct cluster access)
+
+If you have direct access to the cluster from your local machine:
+
+```bash
+kubectl --namespace kasten-io port-forward service/gateway 8080:80
+```
+
+It opens locally the port 8080 and the Kasten dashboard will be available at http://127.0.0.1:8080/k10/#/.
+
+## SSH Tunneling (when accessing through a jump host)
+
+But if you access the cluster through a jumphost/bastion via SSH without any graphical interface, you won't be able to open a browser on the jumphost.
+
+In order to access the dashboard from your laptop (the one from which you initiate the SSH session), you can use SSH tunneling.
+
+### Step 1: Start port-forward on the jump host
+
+First, SSH into your jump host and start the port-forward:
+
+```bash
+ssh user@jumphost
+kubectl --namespace kasten-io port-forward service/gateway 8080:80
+```
+
+Keep this terminal session open.
+
+### Step 2: Create an SSH tunnel from your laptop
+
+Open a **new terminal on your laptop** and create an SSH tunnel that forwards a local port to the jump host's port 8080:
+
+```bash
+ssh -L 8080:localhost:8080 user@jumphost
+```
+
+This command:
+- `-L 8080:localhost:8080` - Creates a local port forward
+- First `8080` - Port on your laptop
+- `localhost:8080` - Port on the jumphost (where kubectl port-forward is listening)
+
+Keep this SSH session open as well.
+
+### Step 3: Access Kasten from your laptop browser
+
+Now open your browser on your laptop and navigate to:
+
+```
+http://localhost:8080/k10/#/
+```
+
+The traffic flow is:
+```
+Your Laptop (port 8080) → SSH Tunnel → Jump Host (port 8080) → kubectl port-forward → Kubernetes Service (gateway)
+```
+
+## Alternative: Single command with SSH tunnel
+
+You can also combine both commands in a single SSH session using background processes:
+
+```bash
+ssh -L 8080:localhost:8080 user@jumphost "kubectl --namespace kasten-io port-forward service/gateway 8080:80"
+```
+
+This will:
+1. Create the SSH tunnel
+2. Execute the kubectl port-forward command on the jump host
+3. Keep both running until you press Ctrl+C
+
+Then access http://localhost:8080/k10/#/ in your browser.
+
+## If you are using PuTTY instead of plain SSH
+
+Windows users often use PuTTY as their SSH client. Here's how to set up the SSH tunnel using PuTTY:
+
+### Step 1: Configure the SSH connection
+
+1. Open PuTTY
+2. In the **Session** category:
+   - Enter your jump host address in **Host Name (or IP address)**: `jumphost` or the IP address
+   - Port: `22`
+   - Connection type: `SSH`
+
+### Step 2: Configure the tunnel
+
+1. In the left panel, navigate to: **Connection** → **SSH** → **Tunnels**
+2. Configure the port forwarding:
+   - **Source port**: `8080` (port on your local Windows machine)
+   - **Destination**: `localhost:8080` (port on the jump host)
+   - Select **Local**
+   - Click **Add**
+3. You should see `L8080  localhost:8080` appear in the **Forwarded ports** list
+
+### Step 3: Save the session (optional)
+
+1. Go back to **Session** category
+2. Enter a name in **Saved Sessions** (e.g., "Jumphost Tunnel")
+3. Click **Save**
+
+### Step 4: Connect
+
+1. Click **Open**
+2. Log in to the jump host with your credentials
+3. Once connected, run the port-forward command in the PuTTY terminal:
+   ```bash
+   kubectl --namespace kasten-io port-forward service/gateway 8080:80
+   ```
+4. Keep the PuTTY window open
+
+### Step 5: Access Kasten
+
+Open your browser on Windows and navigate to:
+```
+http://localhost:8080/k10/#/
+```
+
+**Note**: If you need to forward multiple ports, repeat Step 2 for each port with different source and destination port numbers.
+
+## Troubleshooting
+
+**Port already in use:**
+If port 8080 is already in use on your laptop, change it:
+```bash
+ssh -L 9090:localhost:8080 user@jumphost
+# Then access http://localhost:9090/k10/#/
+```
+
+**Connection refused:**
+- Make sure the kubectl port-forward is still running on the jump host
+- Verify you can reach the jump host: `ping jumphost` or `ssh user@jumphost`
+- Check if the gateway service exists: `kubectl get svc -n kasten-io`
+
+**Cannot connect to Kubernetes from jump host:**
+- Verify kubeconfig is properly set on the jump host: `kubectl cluster-info`
+- Check if you have proper permissions: `kubectl auth can-i get pods -n kasten-io`
+
+
