@@ -369,6 +369,62 @@ EOF
 
 Now you can access the Kasten UI with `https://mcourcy-k10-on-istio.kastenevents.com/k10/` with a valid Let's Encrypt certificate trusted by all browsers!
 
+
+# Managing authorization policy 
+
+Istio AuthorizationPolicy is a security resource that enables access control for workloads in the service mesh. It allows you to define who can access what services and under what conditions.
+
+Often zero trust architecture define a deny all AuthorizationPolicy, which make security audit much easier. 
+
+Let's create one 
+```
+cat <<EOF | kubectl create -f -
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all-by-default
+  namespace: istio-system
+spec:
+  action: ALLOW
+  rules: []  # Empty = deny all traffic mesh-wide
+EOF
+```
+
+If you reload the page you'll get 
+```
+RBAC: access denied
+```
+
+This is a 403 error meaning "I know who you are (or don't care), but you don't have permission to access this resource", The request reaches Envoy proxy, policy is evaluated, and access is denied.
+
+This rule is mesh wide because defined in the istio-system. It will block any communication for pods belonging to the service mesh. 
+
+Since the kasten pods are not in the service mesh (no sidecar injection) inter-namespace communication in kasten-io is ok. 
+
+But since the ingress gateway is using the envoy proxy it will block the access to the kasten UI. In order to solve that you need to create an extra Authorization policy for kasten.
+
+```
+cat <<EOF | kubectl create -f -
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-k10-ingress-gateway
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      istio: ingressgateway  # Only applies to the ingress gateway pods
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        paths: ["/k10/*"]
+        hosts: ["mcourcy-k10-on-istio.kastenevents.com"]
+EOF
+```
+
+Now you can laod the UI again. 
+
 # Uninstall ISTIO
 
 ```
